@@ -1,0 +1,35 @@
+name: astrbot_plugins_anti_limit_Xx
+version: 1.0.0
+author: 夏
+desc: 指令冷却与防刷屏拦截插件，有效防止用户刷屏，保护机器人响应资源
+repo: https://github.com/yuanshen-scaramouche/astrbot_plugins_anti_limit_Xx
+pypi: []
+
+# AstrBot 版本范围要求
+astrbot_version: ">=4.0"
+
+# 插件在 WebUI 中的展示名
+display_name: "灵汐防刷屏插件"
+
+# 这里定义的配置会在 AstrBot 的 Web 管理面板显示
+config:
+  cooldown_seconds:
+    type: number
+    default: 3
+    desc: "指令冷却时间（秒），在此时间内发送相同指令将被拦截"
+  warn_message:
+    type: string
+    default: "核心逻辑混乱，不要再发啦！"
+    desc: "触发拦截时的警告消息内容"
+  keywords:
+    type: list
+    default: []
+    desc: "关键词列表，用于关键词检查功能"
+  enable_keyword_check:
+    type: boolean
+    default: false
+    desc: "是否启用关键词检查功能"
+  enable_warn_word_check:
+    type: boolean
+    default: true
+    desc: "是否发送警告词"

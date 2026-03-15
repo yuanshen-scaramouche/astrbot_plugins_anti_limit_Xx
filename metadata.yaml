@@ -1,4 +1,4 @@
-name: anti_repeat
+name: astrbot_plugin_anti_limit_Xx
 version: 1.0.0
 author: 夏
 desc: 指令冷却与防刷屏拦截插件，有效防止用户刷屏，保护机器人响应资源

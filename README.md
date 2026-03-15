@@ -6,7 +6,7 @@
 > **作者**: 夏  
 > **适用**: AstrBot v4.0+
 
-![插件 Logo](https://image.astrdark.cyou/file/1770702007754_anti_limit 插件 logo.jpg)
+![插件 Logo](https://image.astrdark.cyou/file/1770702007754_anti_limit插件logo.jpg)
 
 ---
 

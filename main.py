@@ -19,7 +19,6 @@ class AntiRepeatPlugin(Star):
 
         # 默认配置值
         self.cooldown_seconds = 3.0
-        self.cmd = ["/"]  # 默认唤醒前缀
         self.WarnMessage = "核心逻辑混乱，不要再发啦！"  # 警告消息
         self.GJC = []  # 关键词列表
         self.enable_keyword_check = False  # 是否启用关键词检查
@@ -47,14 +46,8 @@ class AntiRepeatPlugin(Star):
                 with open(self.config_file, "r", encoding="utf-8") as f:
                     data = json.load(f)
 
-                # 兼容旧版本：如果文件里只是个列表，说明是旧配置
-                if isinstance(data, list):
-                    self.cmd = data
-                    print("检测到旧版配置，已加载指令前缀，将自动迁移到新格式。")
-                    self.save_config()  # 立即保存为新格式
-                elif isinstance(data, dict):
-                    # 读取新版配置，如果不存在则使用默认值
-                    self.cmd = data.get("cmd", self.cmd)
+                if isinstance(data, dict):
+                    # 读取配置，如果不存在则使用默认值
                     self.cooldown_seconds = data.get(
                         "cooldown_seconds", self.cooldown_seconds
                     )
@@ -67,14 +60,14 @@ class AntiRepeatPlugin(Star):
                         "enable_warn_word_check", self.enable_warn_word_check
                     )
                     print(
-                        f"成功读取配置: CD={self.cooldown_seconds}s, 前缀={self.cmd}, 关键词检查={self.enable_keyword_check}"
+                        f"成功读取配置：CD={self.cooldown_seconds}s, 关键词检查={self.enable_keyword_check}"
                     )
 
                     # 更新预编译数据
                     self._update_keyword_cache()
 
             except Exception as e:
-                print(f"读取失败，使用默认配置。错误: {e}")
+                print(f"读取失败，使用默认配置。错误：{e}")
         else:
             print("配置文件不存在，将使用初始配置并创建文件。")
             self.save_config()
@@ -86,7 +79,6 @@ class AntiRepeatPlugin(Star):
             os.makedirs(self.config_dir, exist_ok=True)
             
             data = {
-                "cmd": self.cmd,
                 "cooldown_seconds": self.cooldown_seconds,
                 "warn_message": self.WarnMessage,
                 "gjc": self.GJC,
@@ -119,22 +111,21 @@ class AntiRepeatPlugin(Star):
              【灵汐指令拦截帮助】
              [介绍]
              当同一用户在 {self.cooldown_seconds}s 内发送两次相同内容，将自动拦截后续指令。
-             关键词检查状态: {"开启" if self.enable_keyword_check else "关闭"}
+             关键词检查状态：{"开启" if self.enable_keyword_check else "关闭"}
 
              [指令]
-             注意：除帮助指令外需要添加lx为主指令。
+             注意：除帮助指令外需要添加 lx 为主指令。
              当前警告语句：{self.WarnMessage}
 
              1. lxhelp 或 拦截帮助 -> 获得拦截插件帮助信息
-             2. set_cooldown 或 冷却设置 -> 调整冷却时间 (当前: {self.cooldown_seconds}s)
-             3. 传入指令前缀 / 删除指令前缀 -> 管理触发拦截的指令头
-             4. 设置警告 -> 设置触发拦截时的回复内容
-             5. 设置关键词 -> 设置关键词（多个用逗号分隔）
-             6. 添加关键词 -> 添加单个关键词
-             7. 删除关键词 -> 删除单个关键词
-             8. 开关关键词检查 -> 启用/禁用关�词检查功能
-             9. 查看关键词列表 -> 显示当前关键词列表
-             10. 开关警告词 -> 开关用户多次发送唤醒机器人时是否发送警告词
+             2. set_cooldown 或 冷却设置 -> 调整冷却时间 (当前：{self.cooldown_seconds}s)
+             3. 设置警告 -> 设置触发拦截时的回复内容
+             4. 设置关键词 -> 设置关键词（多个用逗号分隔）
+             5. 添加关键词 -> 添加单个关键词
+             6. 删除关键词 -> 删除单个关键词
+             7. 开关关键词检查 -> 启用/禁用关键词检查功能
+             8. 查看关键词列表 -> 显示当前关键词列表
+             9. 开关警告词 -> 开关用户多次发送时是否发送警告词
              
              """).strip()
         yield event.plain_result(help_message)
@@ -153,32 +144,10 @@ class AntiRepeatPlugin(Star):
             self.save_config()  # 保存配置
 
             yield event.plain_result(
-                f"冷却时间已更新为: {self.cooldown_seconds} 秒并已保存。"
+                f"冷却时间已更新为：{self.cooldown_seconds} 秒并已保存。"
             )
         except ValueError:
             yield event.plain_result("格式错误，请输入数字。")
-
-    # 传入唤醒指令
-    @lx.command("传入指令前缀", alias={"指令前缀", "指令前缀传入"})
-    @filter.permission_type(PermissionType.ADMIN)
-    async def add_cmd_func(self, event: AstrMessageEvent, cm: str):
-        if cm not in self.cmd:
-            self.cmd.append(cm)
-            self.save_config()  # 保存配置
-            yield event.plain_result(f"唤醒前缀传入成功！当前列表：{self.cmd}")
-        else:
-            yield event.plain_result(f"前缀 {cm} 已存在。")
-
-    # 删除唤醒指令
-    @lx.command("删除指令前缀", alias={"指令前缀删除"})
-    @filter.permission_type(PermissionType.ADMIN)
-    async def del_cmd_func(self, event: AstrMessageEvent, cm: str):
-        if cm in self.cmd:
-            self.cmd.remove(cm)
-            self.save_config()  # 保存配置
-            yield event.plain_result(f"唤醒前缀删除成功！当前列表：{self.cmd}")
-        else:
-            yield event.plain_result(f"前缀 {cm} 不在列表中。")
 
     # 设置警告语句
     @lx.command("设置警告")
@@ -267,19 +236,12 @@ class AntiRepeatPlugin(Star):
         if not content:
             return
 
-        # 2. 判断是否需要检查
-        need_check = False
-
-        # 检查是否被@或包含唤醒前缀
-        if event.is_at_or_wake_command:
-            need_check = True
-        # 检查是否包含关键词（仅在启用关键词检查时）
-        elif self._keyword_check_enabled and self._keywords_set:
-            # 优化：使用任何()短路评估和预编译的关键词集合
-            need_check = any(keyword in content for keyword in self._keywords_set)
-
-        if not need_check:
-            return
+        # 2. 检查是否包含关键词（仅在启用关键词检查时）
+        if self._keyword_check_enabled and self._keywords_set:
+            # 优化：使用 any() 短路评估和预编译的关键词集合
+            if not any(keyword in content for keyword in self._keywords_set):
+                return
+        # 如果没有启用关键词检查，则检查所有消息
 
         # 3. 创建唯一标识
         user_id = event.get_sender_id()
@@ -317,14 +279,14 @@ class AntiRepeatPlugin(Star):
         # 5. 更新/新建记录 (重置 warned 状态)
         user_history[content] = {"time": current_time, "warned": False}
 
-        # 6. 定期清理过期历史（每100条记录清理一次，避免频繁清理）
+        # 6. 定期清理过期历史（每 100 条记录清理一次，避免频繁清理）
         if len(user_history) >= 100 and len(user_history) % 100 == 0:
             self._cleanup_user_history(user_id, current_time)
 
     def _cleanup_user_history(self, user_id: str, current_time: float):
         """清理指定用户的过期历史记录"""
         user_history = self.history[user_id]
-        # 阈值设置为冷却时间的2倍，保留足够的历史数据
+        # 阈值设置为冷却时间的 2 倍，保留足够的历史数据
         threshold = self.cooldown_seconds * 2
 
         # 过滤过期记录
@@ -359,14 +321,10 @@ class AntiRepeatPlugin(Star):
             for key in expired_keys:
                 del user_history[key]
 
-            # 标记空的用户历史以待删除
+            # 如果用户没有任何历史记录，标记删除
             if not user_history:
                 users_to_delete.append(user_id)
 
-        # 删除空的用户历史
+        # 删除空用户条目
         for user_id in users_to_delete:
             del self.history[user_id]
-
-
-# 为了保持向后兼容，提供一个别名
-AntiRepeat = AntiRepeatPlugin

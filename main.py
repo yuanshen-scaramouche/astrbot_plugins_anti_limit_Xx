@@ -25,8 +25,8 @@ class AntiRepeatPlugin(Star):
         self.enable_keyword_check = False  # 是否启用关键词检查
         self.enable_warn_word_check = True  # 是否启用言语警告
         
-        # 配置文件路径：使用 StarTools.get_data_dir() 获取插件数据目录
-        self.config_dir: Path = self.get_data_dir()
+        # 配置文件路径：使用 context 获取插件数据目录
+        self.config_dir: Path = self.context.get_data_dir()
         self.config_file = self.config_dir / config_file
 
         # 关键词缓存

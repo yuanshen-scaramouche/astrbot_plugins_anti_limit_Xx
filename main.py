@@ -1,14 +1,13 @@
 import time
 import json
 import math
-import os
 import textwrap
 from pathlib import Path
 from collections import defaultdict
-from astrbot.api import logger
-from astrbot.api.event import filter, AstrMessageEvent, MessageChain
+from astrbot.api import logger, star
+from astrbot.api.event import filter, AstrMessageEvent, MessageChain, MessageEventResult
 from astrbot.api.event.filter import EventMessageType, PermissionType
-from astrbot.api.star import Context, Star, register
+from astrbot.api.star import Context, Star, register, StarTools
 
 
 @register("anti_repeat", "星汐", "防重复指令拦截器", "1.1.0")
@@ -26,9 +25,8 @@ class AntiRepeatPlugin(Star):
         self.enable_keyword_check = False  # 是否启用关键词检查
         self.enable_warn_word_check = True  # 是否启用言语警告
         
-        # 配置文件路径：使用 Star 类的 get_data_dir() 方法
-        # 获取当前插件的数据目录
-        self.config_dir: Path = self.get_data_dir()
+        # 配置文件路径：使用 StarTools.get_data_dir() 获取插件数据目录
+        self.config_dir: Path = StarTools.get_data_dir()
         self.config_file = self.config_dir / config_file
 
         # 关键词缓存
@@ -140,14 +138,14 @@ class AntiRepeatPlugin(Star):
              9. 开关警告词 -> 开关用户多次发送时是否发送警告词
              
              """).strip()
-        yield event.plain_result(help_message)
+        event.set_result(MessageEventResult().message(help_message).use_t2i(False))
 
     @filter.command("Xx", alias={"Xx"})
     @filter.permission_type(PermissionType.ADMIN)
     async def Xx_command_group(self, event: AstrMessageEvent, subcmd: str, *, args: str = ""):
         """Xx 命令组入口"""
         # 这个命令组只是作为入口，实际功能由下面的具体命令实现
-        yield event.plain_result("请使用具体的子命令，发送 Xxhelp 查看帮助。")
+        event.set_result(MessageEventResult().message("请使用具体的子命令，发送 Xxhelp 查看帮助。").use_t2i(False))
 
     @filter.command("set_cooldown", alias={"冷却设置"})
     @filter.permission_type(PermissionType.ADMIN)
@@ -155,7 +153,7 @@ class AntiRepeatPlugin(Star):
         try:
             new_time = float(seconds)
             if new_time < 0 or math.isnan(new_time) or math.isinf(new_time):
-                yield event.plain_result("冷却时间必须为非负有限数字。")
+                event.set_result(MessageEventResult().message("冷却时间必须为非负有限数字。").use_t2i(False))
                 return
 
             self.cooldown_seconds = new_time
@@ -163,11 +161,9 @@ class AntiRepeatPlugin(Star):
             self.save_config()  # 保存配置
 
             logger.info(f"冷却时间已更新为：{self.cooldown_seconds} 秒")
-            yield event.plain_result(
-                f"冷却时间已更新为：{self.cooldown_seconds} 秒并已保存。"
-            )
+            event.set_result(MessageEventResult().message(f"冷却时间已更新为：{self.cooldown_seconds} 秒并已保存。").use_t2i(False))
         except ValueError:
-            yield event.plain_result("格式错误，请输入数字。")
+            event.set_result(MessageEventResult().message("格式错误，请输入数字。").use_t2i(False))
 
     # 设置警告语句
     @filter.command("设置警告")
@@ -176,7 +172,7 @@ class AntiRepeatPlugin(Star):
         self.warn_message = wm
         self.save_config()  # 保存配置
         logger.info(f"警告语句已更新：{self.warn_message}")
-        yield event.plain_result(f"警告语句已更新并保存：{self.warn_message}")
+        event.set_result(MessageEventResult().message(f"警告语句已更新并保存：{self.warn_message}").use_t2i(False))
 
     # 开关发送警告
     @filter.command("开关警告词发送", alias={"开关警告词"})
@@ -186,7 +182,7 @@ class AntiRepeatPlugin(Star):
         self.save_config()
         status = "开启" if self.enable_warn_word_check else "关闭"
         logger.info(f"警告词功能已{status}")
-        yield event.plain_result(f"警告词功能已{status}")
+        event.set_result(MessageEventResult().message(f"警告词功能已{status}").use_t2i(False))
 
     # 设置关键词（覆盖）
     @filter.command("设置关键词")
@@ -199,7 +195,7 @@ class AntiRepeatPlugin(Star):
         self._update_keyword_cache()  # 更新缓存
         self.save_config()
         logger.info(f"关键词已设置：{self.keywords}")
-        yield event.plain_result(f"已设置关键词：{self.keywords}")
+        event.set_result(MessageEventResult().message(f"已设置关键词：{self.keywords}").use_t2i(False))
 
     # 添加关键词而不是覆盖
     @filter.command("添加关键词")
@@ -211,9 +207,9 @@ class AntiRepeatPlugin(Star):
             self._update_keyword_cache()  # 更新缓存
             self.save_config()
             logger.info(f"添加关键词：{keyword}")
-            yield event.plain_result(f"已添加关键词：{keyword}，当前列表：{self.keywords}")
+            event.set_result(MessageEventResult().message(f"已添加关键词：{keyword}，当前列表：{self.keywords}").use_t2i(False))
         else:
-            yield event.plain_result(f"关键词 {keyword} 已存在或为空")
+            event.set_result(MessageEventResult().message(f"关键词 {keyword} 已存在或为空").use_t2i(False))
 
     # 删除关键词
     @filter.command("删除关键词", alias={"关键词删除"})
@@ -225,9 +221,9 @@ class AntiRepeatPlugin(Star):
             self._update_keyword_cache()  # 更新缓存
             self.save_config()  # 保存配置
             logger.info(f"删除关键词：{keyword}")
-            yield event.plain_result(f"关键词删除成功！当前列表：{self.keywords}")
+            event.set_result(MessageEventResult().message(f"关键词删除成功！当前列表：{self.keywords}").use_t2i(False))
         else:
-            yield event.plain_result(f"关键词 {keyword} 不在列表中。")
+            event.set_result(MessageEventResult().message(f"关键词 {keyword} 不在列表中。").use_t2i(False))
 
     # 开关关键词检查功能
     @filter.command("开关关键词检查", alias={"切换关键词检查"})
@@ -238,7 +234,7 @@ class AntiRepeatPlugin(Star):
         self.save_config()
         status = "开启" if self.enable_keyword_check else "关闭"
         logger.info(f"关键词检查功能已{status}")
-        yield event.plain_result(f"关键词检查功能已{status}")
+        event.set_result(MessageEventResult().message(f"关键词检查功能已{status}").use_t2i(False))
 
     # 查看关键词列表
     @filter.command("查看关键词列表", alias={"显示关键词", "关键词列表"})
@@ -248,11 +244,9 @@ class AntiRepeatPlugin(Star):
             keywords_str = "\n".join(
                 [f"{i + 1}. {keyword}" for i, keyword in enumerate(self.keywords)]
             )
-            yield event.plain_result(
-                f"当前关键词列表：\n{keywords_str}\n\n关键词检查功能：{'开启' if self.enable_keyword_check else '关闭'}"
-            )
+            event.set_result(MessageEventResult().message(f"当前关键词列表：\n{keywords_str}\n\n关键词检查功能：{'开启' if self.enable_keyword_check else '关闭'}").use_t2i(False))
         else:
-            yield event.plain_result("当前没有设置关键词。")
+            event.set_result(MessageEventResult().message("当前没有设置关键词。").use_t2i(False))
 
     # === 事件监听部分 ===
     @filter.event_message_type(EventMessageType.ALL, priority=10)

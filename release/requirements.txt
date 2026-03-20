@@ -1,0 +1,3 @@
+# AstrBot Rate Limit Plugin Dependencies
+# 此插件不需要额外的 Python 依赖包
+# 仅依赖 AstrBot 核心框架
